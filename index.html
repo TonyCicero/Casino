@@ -1,43 +1,4 @@
-<script type="text/javascript">
-        var gk_isXlsx = false;
-        var gk_xlsxFileLookup = {};
-        var gk_fileData = {};
-        function filledCell(cell) {
-          return cell !== '' && cell != null;
-        }
-        function loadFileData(filename) {
-        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
-            try {
-                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
-                var firstSheetName = workbook.SheetNames[0];
-                var worksheet = workbook.Sheets[firstSheetName];
-
-                // Convert sheet to JSON to filter blank rows
-                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
-                // Filter out blank rows (rows where all cells are empty, null, or undefined)
-                var filteredData = jsonData.filter(row => row.some(filledCell));
-
-                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
-                var headerRowIndex = filteredData.findIndex((row, index) =>
-                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
-                );
-                // Fallback
-                if (headerRowIndex === -1 || headerRowIndex > 25) {
-                  headerRowIndex = 0;
-                }
-
-                // Convert filtered JSON back to CSV
-                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
-                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
-                return csv;
-            } catch (e) {
-                console.error(e);
-                return "";
-            }
-        }
-        return gk_fileData[filename] || "";
-        }
-        </script><!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -105,25 +66,94 @@
         .button-hover:hover {
             transform: scale(1.1);
         }
+        .chip {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Arial', sans-serif;
+            font-weight: bold;
+            color: white;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3), inset 0 2px 4px rgba(255, 255, 255, 0.4);
+            transition: transform 0.2s ease-in-out;
+        }
+        .chip:hover {
+            transform: scale(1.1);
+        }
+        .chip-10 {
+            background: radial-gradient(circle, #dc2626, #b91c1c);
+        }
+        .chip-25 {
+            background: radial-gradient(circle, #16a34a, #15803d);
+        }
+        .chip-50 {
+            background: radial-gradient(circle, #1e40af, #1e3a8a);
+        }
+        #betting-controls {
+            display: flex;
+            justify-content: center;
+        }
+        .win-flash {
+            animation: winFlash 0.5s ease-in-out;
+        }
+        .lose-flash {
+            animation: loseFlash 0.5s ease-in-out;
+        }
+        @keyframes winFlash {
+            0% { background-color: rgba(22, 163, 74, 0.5); }
+            50% { background-color: rgba(22, 163, 74, 0.8); }
+            100% { background-color: rgba(22, 163, 74, 0.5); }
+        }
+        @keyframes loseFlash {
+            0% { background-color: rgba(220, 38, 38, 0.5); }
+            50% { background-color: rgba(220, 38, 38, 0.8); }
+            100% { background-color: rgba(220, 38, 38, 0.5); }
+        }
+        .particle {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: yellow;
+            opacity: 0.8;
+            pointer-events: none;
+            animation: particleFall 1s ease-out forwards;
+        }
+        @keyframes particleFall {
+            0% { transform: translateY(0); opacity: 0.8; }
+            100% { transform: translateY(100vh); opacity: 0; }
+        }
     </style>
 </head>
 <body class="bg-green-900 text-white flex flex-col items-center justify-center min-h-screen">
     <div class="container mx-auto p-4">
         <h1 class="text-4xl font-bold text-center mb-8 animate-pulse">Blackjack</h1>
         <div id="game" class="space-y-8">
+            <!-- Token Balance -->
+            <div class="text-center text-xl">
+                Tokens: <span id="token-balance">100</span>
+            </div>
             <!-- Dealer's Hand -->
-            <div id="dealer-hand" class="flex flex-col items-center">
+            <div id="dealer-hand" class="flex flex-col items-center hidden">
                 <h2 class="text-2xl">Dealer's Hand: <span id="dealer-score">0</span></h2>
                 <div id="dealer-cards" class="flex space-x-4 mt-4"></div>
             </div>
             <!-- Player's Hand -->
-            <div id="player-hand" class="flex flex-col items-center">
+            <div id="player-hand" class="flex flex-col items-center hidden">
                 <h2 class="text-2xl">Player's Hand: <span id="player-score">0</span></h2>
                 <div id="player-cards" class="flex space-x-4 mt-4"></div>
             </div>
             <!-- Game Controls -->
-            <div id="controls" class="text-center space-x-4">
-                <button id="deal" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded button-hover" onclick="deal()">Deal</button>
+            <div id="controls" class="text-center space-y-4">
+                <div id="bet-instruction" class="text-lg">Place a bet to start the game!</div>
+                <div id="betting-controls" class="space-x-4">
+                    <button id="bet-10" class="chip chip-10" onclick="placeBet(10)">10</button>
+                    <button id="bet-25" class="chip chip-25" onclick="placeBet(25)">25</button>
+                    <button id="bet-50" class="chip chip-50" onclick="placeBet(50)">50</button>
+                </div>
                 <button id="hit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded button-hover hidden" onclick="hit()">Hit</button>
                 <button id="stand" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded button-hover hidden" onclick="stand()">Stand</button>
             </div>
@@ -139,6 +169,8 @@
         let playerHand = [];
         let dealerHand = [];
         let gameActive = false;
+        let currentBet = 0;
+        let tokenBalance = 100;
 
         function createDeck() {
             deck = [];
@@ -209,7 +241,6 @@
             if (forDisplay && aces > 0 && lowScore !== highScore && highScore <= 21) {
                 return `${lowScore}/${highScore}`;
             }
-            // For game logic, use the highest valid score
             return highScore <= 21 ? highScore : lowScore;
         }
 
@@ -219,6 +250,10 @@
             document.getElementById('dealer-score').textContent = gameActive ? dealerHand.length === 2 ? calculateScore([dealerHand[0]]) : 0 : calculateScore(dealerHand);
         }
 
+        function updateTokenBalance() {
+            document.getElementById('token-balance').textContent = tokenBalance;
+        }
+
         function clearHands() {
             document.getElementById('player-cards').innerHTML = '';
             document.getElementById('dealer-cards').innerHTML = '';
@@ -226,26 +261,58 @@
             dealerHand = [];
         }
 
-        async function deal() {
-            createDeck();
-            shuffleDeck();
-            clearHands();
-            gameActive = true;
-            document.getElementById('hit').classList.remove('hidden');
-            document.getElementById('stand').classList.remove('hidden');
-            document.getElementById('deal').classList.add('hidden');
-            document.getElementById('message').textContent = '';
+        function createParticles() {
+            const body = document.body;
+            for (let i = 0; i < 20; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = `${Math.random() * 100}vw`;
+                particle.style.top = `-${Math.random() * 100}px`;
+                particle.style.background = ['yellow', 'gold', 'white'][Math.floor(Math.random() * 3)];
+                particle.style.animationDelay = `${Math.random() * 0.5}s`;
+                body.appendChild(particle);
+                setTimeout(() => particle.remove(), 1000);
+            }
+        }
 
-            await dealCard(playerHand, 'player-cards');
-            await dealCard(dealerHand, 'dealer-cards');
-            await dealCard(playerHand, 'player-cards');
-            await dealCard(dealerHand, 'dealer-cards', true);
+        async function placeBet(amount) {
+            if (tokenBalance >= amount) {
+                currentBet = amount;
+                tokenBalance -= amount;
+                updateTokenBalance();
+                // Force immediate hide using style.display
+                document.getElementById('betting-controls').style.display = 'none';
+                document.getElementById('bet-instruction').style.display = 'none';
+                document.getElementById('dealer-hand').classList.remove('hidden');
+                document.getElementById('player-hand').classList.remove('hidden');
+                document.getElementById('message').textContent = `Bet placed: ${amount} tokens`;
 
-            updateScores();
+                // Automatically deal cards
+                createDeck();
+                shuffleDeck();
+                clearHands();
+                gameActive = true;
+                document.getElementById('hit').classList.remove('hidden');
+                document.getElementById('stand').classList.remove('hidden');
+                document.getElementById('message').textContent = '';
 
-            if (calculateScore(playerHand) === 21) {
-                revealDealerCard();
-                endGame('Player has Blackjack! You win!');
+                await dealCard(playerHand, 'player-cards');
+                await dealCard(dealerHand, 'dealer-cards');
+                await dealCard(playerHand, 'player-cards');
+                await dealCard(dealerHand, 'dealer-cards', true);
+
+                updateScores();
+
+                if (calculateScore(playerHand) === 21) {
+                    revealDealerCard();
+                    tokenBalance += currentBet * 2.5; // Blackjack pays 2.5x
+                    updateTokenBalance();
+                    endGame(`Player has Blackjack! You win ${currentBet * 2.5} tokens!`, 'win');
+                }
+            } else {
+                document.getElementById('message').textContent = 'Insufficient tokens!';
+                document.getElementById('message').classList.add('message-animate');
+                setTimeout(() => document.getElementById('message').classList.remove('message-animate'), 500);
             }
         }
 
@@ -255,7 +322,9 @@
             const score = calculateScore(playerHand);
             if (score > 21) {
                 revealDealerCard();
-                endGame('Player busts! Dealer wins.');
+                document.getElementById('hit').classList.add('hidden');
+                document.getElementById('stand').classList.add('hidden');
+                endGame(`Player busts! You lose ${currentBet} tokens.`, 'lose');
             }
         }
 
@@ -263,7 +332,6 @@
             gameActive = false;
             document.getElementById('hit').classList.add('hidden');
             document.getElementById('stand').classList.add('hidden');
-            document.getElementById('deal').classList.remove('hidden');
 
             revealDealerCard();
             while (calculateScore(dealerHand) < 17) {
@@ -274,26 +342,58 @@
             const playerScore = calculateScore(playerHand);
             const dealerScore = calculateScore(dealerHand);
 
+            let message = '';
+            let outcome = '';
             if (dealerScore > 21) {
-                endGame('Dealer busts! You win!');
+                tokenBalance += currentBet * 2; // Win pays 2x
+                updateTokenBalance();
+                message = `Dealer busts! You win ${currentBet * 2} tokens!`;
+                outcome = 'win';
             } else if (playerScore > dealerScore) {
-                endGame('You win!');
+                tokenBalance += currentBet * 2; // Win pays 2x
+                updateTokenBalance();
+                message = `You win ${currentBet * 2} tokens!`;
+                outcome = 'win';
             } else if (dealerScore > playerScore) {
-                endGame('Dealer wins.');
+                message = `Dealer wins. You lose ${currentBet} tokens.`;
+                outcome = 'lose';
             } else {
-                endGame('It\'s a tie!');
+                tokenBalance += currentBet; // Tie returns bet
+                updateTokenBalance();
+                message = `It's a tie! Your ${currentBet} tokens are returned.`;
+                outcome = 'tie';
             }
+
+            endGame(message, outcome);
         }
 
-        function endGame(message) {
+        function endGame(message, outcome) {
             gameActive = false;
             const messageElement = document.getElementById('message');
+            const body = document.body;
             messageElement.textContent = message;
             messageElement.classList.add('message-animate');
-            document.getElementById('hit').classList.add('hidden');
-            document.getElementById('stand').classList.add('hidden');
-            document.getElementById('deal').classList.remove('hidden');
-            setTimeout(() => messageElement.classList.remove('message-animate'), 500);
+
+            if (outcome === 'win') {
+                body.classList.add('win-flash');
+                createParticles();
+                setTimeout(() => body.classList.remove('win-flash'), 500);
+            } else if (outcome === 'lose') {
+                body.classList.add('lose-flash');
+                setTimeout(() => body.classList.remove('lose-flash'), 500);
+            }
+
+            setTimeout(() => {
+                messageElement.classList.remove('message-animate');
+                document.getElementById('betting-controls').style.display = 'flex';
+                document.getElementById('bet-instruction').style.display = 'block';
+                document.getElementById('dealer-hand').classList.add('hidden');
+                document.getElementById('player-hand').classList.add('hidden');
+                document.getElementById('hit').classList.add('hidden');
+                document.getElementById('stand').classList.add('hidden');
+                clearHands();
+                currentBet = 0;
+            }, 4000); // 4-second delay
         }
     </script>
 </body>
