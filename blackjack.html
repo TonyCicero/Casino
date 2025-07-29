@@ -184,7 +184,7 @@
         let dealerHand = [];
         let gameActive = false;
         let currentBet = 0;
-        let tokenBalance = 100;
+        let tokenBalance = parseInt(localStorage.getItem('tokenBalance')) || 100;
 
         function createDeck() {
             deck = [];
@@ -266,6 +266,7 @@
 
         function updateTokenBalance() {
             document.getElementById('token-balance').textContent = tokenBalance;
+            localStorage.setItem('tokenBalance', tokenBalance);
         }
 
         function clearHands() {
@@ -288,6 +289,11 @@
                 setTimeout(() => particle.remove(), 1000);
             }
         }
+
+        // Initialize token balance on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            updateTokenBalance();
+        });
 
         async function placeBet(amount) {
             if (tokenBalance >= amount) {
