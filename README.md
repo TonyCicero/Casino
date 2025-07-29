@@ -1,5 +1,5 @@
-# Blackjack
-A simple Blackjack game
-https://tonycicero.github.io/Blackjack/
+# Casino
+Simple casino games created with the help of Grok
 
-Created using Grok
+https://tonycicero.github.io/Casino/
+
