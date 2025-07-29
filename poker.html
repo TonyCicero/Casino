@@ -193,7 +193,7 @@
         let communityCards = [];
         let gameActive = false;
         let currentBet = 0;
-        let tokenBalance = 100;
+        let tokenBalance = parseInt(localStorage.getItem('tokenBalance')) || 100;
         let pot = 0;
         let round = 'preflop'; // preflop, flop, turn, river, showdown
 
@@ -309,7 +309,7 @@
             if (playerEval.score > dealerEval.score) return 'player';
             if (dealerEval.score > playerEval.score) return 'dealer';
             if (playerEval.high > dealerEval.high) return 'player';
-            if (dealerEval.high > playerEval.high) return 'dealer';
+            if (dealerEval.high > dealerEval.high) return 'dealer';
             return 'tie';
         }
 
@@ -319,6 +319,7 @@
 
         function updateTokenBalance() {
             document.getElementById('token-balance').textContent = tokenBalance;
+            localStorage.setItem('tokenBalance', tokenBalance);
         }
 
         function updateHandRankings() {
@@ -357,6 +358,11 @@
             }
         }
 
+        // Initialize token balance on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            updateTokenBalance();
+        });
+
         async function placeBet(amount) {
             if (tokenBalance >= amount) {
                 currentBet = amount;
@@ -384,7 +390,7 @@
                 document.getElementById('message').textContent = 'Preflop: Choose your action';
 
                 await dealCard(playerHand, 'player-cards');
-                await dealCard(dealerHand, 'dealer-cards', true);
+                await dealCard(dealerHand, "dealer-cards", true);
                 await dealCard(playerHand, 'player-cards');
                 await dealCard(dealerHand, 'dealer-cards', true);
                 updateHandRankings();
