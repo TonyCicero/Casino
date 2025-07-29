@@ -1,43 +1,4 @@
-<script type="text/javascript">
-        var gk_isXlsx = false;
-        var gk_xlsxFileLookup = {};
-        var gk_fileData = {};
-        function filledCell(cell) {
-          return cell !== '' && cell != null;
-        }
-        function loadFileData(filename) {
-        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
-            try {
-                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
-                var firstSheetName = workbook.SheetNames[0];
-                var worksheet = workbook.Sheets[firstSheetName];
-
-                // Convert sheet to JSON to filter blank rows
-                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
-                // Filter out blank rows (rows where all cells are empty, null, or undefined)
-                var filteredData = jsonData.filter(row => row.some(filledCell));
-
-                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
-                var headerRowIndex = filteredData.findIndex((row, index) =>
-                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
-                );
-                // Fallback
-                if (headerRowIndex === -1 || headerRowIndex > 25) {
-                  headerRowIndex = 0;
-                }
-
-                // Convert filtered JSON back to CSV
-                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
-                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
-                return csv;
-            } catch (e) {
-                console.error(e);
-                return "";
-            }
-        }
-        return gk_fileData[filename] || "";
-        }
-        </script><!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -99,15 +60,70 @@
         .chip-poker {
             background: radial-gradient(circle, #16a34a, #15803d);
         }
+        .chip-claim {
+            background: radial-gradient(circle, #1e40af, #1e3a8a);
+        }
+        .message-animate {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            0% { opacity: 0; }
+            100% { opacity: 1; }
+        }
+        .bottom-right {
+            position: fixed;
+            bottom: 16px;
+            right: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 8px;
+        }
     </style>
 </head>
 <body class="bg-green-900 text-white flex flex-col items-center justify-center min-h-screen">
     <div class="container mx-auto p-4 text-center">
         <h1 class="text-6xl neon-sign mb-12">Tony's Casino</h1>
-        <div class="flex flex-col sm:flex-row justify-center space-y-6 sm:space-y-0 sm:space-x-8">
+        <div class="flex flex-col sm:flex-row justify-center space-y-6 sm:space-y-0 sm:space-x-8 mb-8">
             <a href="blackjack.html" class="chip chip-blackjack text-2xl">Blackjack</a>
             <a href="poker.html" class="chip chip-poker text-2xl">Poker</a>
         </div>
     </div>
+    <div class="bottom-right">
+        <button id="claim-tokens" class="chip chip-claim text-xl">Claim 100 Tokens</button>
+        <div id="claim-message" class="text-lg"></div>
+    </div>
+
+    <script>
+        function claimTokens() {
+            const now = Date.now();
+            const lastClaim = parseInt(localStorage.getItem('lastTokenClaim')) || 0;
+            const cooldown = 5 * 60 * 1000; // 5 minutes in milliseconds
+            const timeLeft = (lastClaim + cooldown) - now;
+
+            if (timeLeft <= 0) {
+                let tokenBalance = parseInt(localStorage.getItem('tokenBalance')) || 100;
+                tokenBalance += 100;
+                localStorage.setItem('tokenBalance', tokenBalance);
+                localStorage.setItem('lastTokenClaim', now);
+                document.getElementById('claim-message').textContent = 'Claimed 100 tokens!';
+                document.getElementById('claim-message').classList.add('message-animate');
+                setTimeout(() => {
+                    document.getElementById('claim-message').classList.remove('message-animate');
+                }, 500);
+            } else {
+                const minutes = Math.ceil(timeLeft / 60000);
+                document.getElementById('claim-message').textContent = `Please wait ${minutes} minute${minutes > 1 ? 's' : ''} to claim again.`;
+                document.getElementById('claim-message').classList.add('message-animate');
+                setTimeout(() => {
+                    document.getElementById('claim-message').classList.remove('message-animate');
+                }, 500);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('claim-tokens').addEventListener('click', claimTokens);
+        });
+    </script>
 </body>
 </html>
