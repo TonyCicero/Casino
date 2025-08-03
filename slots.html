@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Slots</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .slot-machine {
+            width: 360px; /* 3 reels (100px) + 2 gaps (8px) + 2 borders (4px) + 16px padding + buffer */
+            height: 230px; /* Fixed height: 150px reels + 8px padding + 40px header + buffer */
+            background: linear-gradient(#2d2d2d, #1a1a1a);
+            border: 4px solid transparent;
+            border-image: linear-gradient(to bottom, #c0c0c0, #808080) 1;
+            border-radius: 12px;
+            padding: 8px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4), inset 0 0 10px rgba(255, 255, 255, 0.1);
+            position: relative;
+            overflow: visible; /* Allows lever visibility */
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .slot-machine::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border-radius: 8px;
+            box-shadow: inset 0 0 20px rgba(255, 215, 0, 0.3);
+            pointer-events: none;
+        }
+        .reel {
+            width: 100px;
+            height: 150px;
+            background: linear-gradient(#333, #222);
+            border: 2px solid #000;
+            border-radius: 8px;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
+            position: relative;
+            overflow: hidden;
+        }
+        .reel-strip {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: absolute;
+            width: 100%;
+            top: -100px; /* Start above to show 3 symbols in 150px window */
+        }
+        .reel-strip.spinning {
+            animation: spinReel 1.5s linear forwards;
+            filter: blur(3px);
+        }
+        .reel-symbol {
+            width: 100px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Arial', sans-serif;
+            font-size: 32px;
+            font-weight: bold;
+            color: white;
+            border-bottom: 1px solid #000;
+        }
+        .reel-symbol:last-child {
+            border-bottom: none;
+        }
+        .reel-stop {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 150px; /* Full reel height for 3 symbols */
+            filter: none;
+            opacity: 0;
+            transition: opacity 0.2s ease-in;
+        }
+        .reel-stop.visible {
+            opacity: 1;
+        }
+        .lever {
+            width: 30px;
+            height: 150px;
+            background: linear-gradient(to right, #a0a0a0, #d0d0d0); /* Polished steel */
+            border-radius: 10px; /* Subtle curve */
+            position: absolute;
+            right: -30px; /* Attached to right edge: 30px width */
+            top: 8px; /* Align with machine padding */
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55); /* Bounce effect */
+            box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            z-index: 10; /* Ensure visibility */
+            transform-origin: top; /* Pivot at top for downward rotation */
+        }
+        .lever::after {
+            content: '';
+            width: 40px;
+            height: 40px;
+            background: radial-gradient(circle, #ff3333, #cc0000); /* Vibrant red */
+            border-radius: 50%;
+            position: absolute;
+            top: 8px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4), inset 0 2px 4px rgba(255, 255, 255, 0.3);
+        }
+        .lever.pulled {
+            transform: rotate(90deg); /* Downward rotation for lever pull */
+        }
+        .lever.hidden {
+            display: none;
+        }
+        .message-animate {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            0% { opacity: 0; }
+            100% { opacity: 1; }
+        }
+        .button-hover {
+            transition: transform 0.2s ease-in-out;
+        }
+        .button-hover:hover {
+            transform: scale(1.1);
+        }
+        .chip {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Arial', sans-serif;
+            font-weight: bold;
+            color: white;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3), inset 0 2px 4px rgba(255, 255, 255, 0.4);
+            transition: transform 0.2s ease-in-out;
+        }
+        .chip:hover {
+            transform: scale(1.1);
+        }
+        .chip-10 {
+            background: radial-gradient(circle, #dc2626, #b91c1c);
+        }
+        .chip-25 {
+            background: radial-gradient(circle, #16a34a, #15803d);
+        }
+        .chip-50 {
+            background: radial-gradient(circle, #1e40af, #1e3a8a);
+        }
+        #betting-controls {
+            display: flex;
+            justify-content: center;
+        }
+        .win-flash {
+            animation: winFlash 0.5s ease-in-out;
+        }
+        .lose-flash {
+            animation: loseFlash 0.5s ease-in-out;
+        }
+        @keyframes winFlash {
+            0% { background-color: rgba(22, 163, 74, 0.5); }
+            50% { background-color: rgba(22, 163, 74, 0.8); }
+            100% { background-color: rgba(22, 163, 74, 0.5); }
+        }
+        @keyframes loseFlash {
+            0% { background-color: rgba(220, 38, 38, 0.5); }
+            50% { background-color: rgba(220, 38, 38, 0.8); }
+            100% { background-color: rgba(220, 38, 38, 0.5); }
+        }
+        .particle {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: yellow;
+            opacity: 0.8;
+            pointer-events: none;
+            animation: particleFall 1s ease-out forwards;
+        }
+        @keyframes particleFall {
+            0% { transform: translateY(0); opacity: 0.8; }
+            100% { transform: translateY(100vh); opacity: 0; }
+        }
+        .back-link {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            color: white;
+            font-family: 'Arial', sans-serif;
+            font-size: 16px;
+            text-decoration: none;
+            transition: color 0.2s ease-in-out;
+        }
+        .back-link:hover {
+            color: #ffcc00;
+        }
+        @keyframes spinReel {
+            0% { transform: translateY(-150px); } /* Start with 3 symbols visible */
+            100% { transform: translateY(2850px); } /* Downward: 19 symbols * 150px */
+        }
+    </style>
+</head>
+<body class="bg-green-900 text-white flex flex-col items-center justify-center min-h-screen">
+    <a href="index.html" class="back-link">Back to Casino</a>
+    <div class="container mx-auto p-4">
+        <h1 class="text-4xl font-bold text-center mb-8 animate-pulse">Slot Machine</h1>
+        <div id="game" class="space-y-8 flex flex-col items-center">
+            <!-- Token Balance -->
+            <div class="text-center text-xl">
+                Tokens: <span id="token-balance">100</span>
+            </div>
+            <!-- Slot Machine -->
+            <div id="slot-machine" class="slot-machine flex flex-col items-center">
+                <h2 class="text-2xl mb-4">Reels</h2>
+                <div id="reel-area" class="flex space-x-4"></div>
+                <button id="lever" class="lever button-hover" style="display: none;"></button>
+            </div>
+            <!-- Game Controls -->
+            <div id="controls" class="text-center space-y-4">
+                <div id="bet-instruction" class="text-lg">Place a bet to spin!</div>
+                <div id="betting-controls" class="flex space-x-4 justify-center">
+                    <button id="bet-10" class="chip chip-10" onclick="placeBet(10)">10</button>
+                    <button id="bet-25" class="chip chip-25" onclick="placeBet(25)">25</button>
+                    <button id="bet-50" class="chip chip-50" onclick="placeBet(50)">50</button>
+                </div>
+                <!-- Game Message -->
+                <div id="message" class="text-center text-xl"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const symbols = ['🍒', '🔔', '🍊', '7️⃣', '💎']; // Cherry, Bell, Bar, Seven, Diamond
+        let tokenBalance = parseInt(localStorage.getItem('tokenBalance')) || 100;
+        let currentBet = 0;
+        let gameActive = false;
+
+        function updateTokenBalance() {
+            document.getElementById('token-balance').textContent = tokenBalance;
+            localStorage.setItem('tokenBalance', tokenBalance);
+        }
+
+        function createParticles() {
+            const body = document.body;
+            for (let i = 0; i < 20; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = `${Math.random() * 100}vw`;
+                particle.style.top = `-${Math.random() * 100}px`;
+                particle.style.background = ['yellow', 'gold', 'white'][Math.floor(Math.random() * 3)];
+                particle.style.animationDelay = `${Math.random() * 0.5}s`;
+                body.appendChild(particle);
+                setTimeout(() => particle.remove(), 1000);
+            }
+        }
+
+        async function spinReel(reelElement, reelIndex) {
+            const finalSymbol = symbols[Math.floor(Math.random() * symbols.length)];
+
+            // Create or reuse strip
+            let strip = reelElement.querySelector('.reel-strip');
+            if (!strip) {
+                strip = document.createElement('div');
+                strip.className = 'reel-strip';
+                reelElement.appendChild(strip);
+            }
+            strip.innerHTML = '';
+
+            // Populate strip with 20 symbols (1000px total height)
+            const spinSymbols = Array(20).fill().map(() => symbols[Math.floor(Math.random() * symbols.length)]);
+            spinSymbols.forEach(symbol => {
+                const symbolElement = document.createElement('div');
+                symbolElement.className = 'reel-symbol';
+                symbolElement.textContent = symbol;
+                strip.appendChild(symbolElement);
+            });
+
+            // Start spinning animation
+            strip.classList.add('spinning');
+
+            // Wait for spin duration + staggered delay
+            await new Promise(resolve => setTimeout(resolve, 1500 + reelIndex * 100));
+
+            // Stop with three symbols, middle one is the result
+            strip.remove(); // Remove strip immediately to avoid pause
+            const finalSymbolElement = document.createElement('div');
+            finalSymbolElement.className = 'reel-stop';
+            // Create three symbols: top, middle (result), bottom
+            const topSymbol = symbols[Math.floor(Math.random() * symbols.length)];
+            const bottomSymbol = symbols[Math.floor(Math.random() * symbols.length)];
+            const symbolsToShow = [topSymbol, finalSymbol, bottomSymbol];
+            symbolsToShow.forEach(symbol => {
+                const symbolElement = document.createElement('div');
+                symbolElement.className = 'reel-symbol';
+                symbolElement.textContent = symbol;
+                finalSymbolElement.appendChild(symbolElement);
+            });
+            reelElement.appendChild(finalSymbolElement);
+            // Trigger fade-in
+            setTimeout(() => finalSymbolElement.classList.add('visible'), 10);
+
+            return finalSymbol; // Return middle symbol for matching logic
+        }
+
+        function clearReels() {
+            const reelArea = document.getElementById('reel-area');
+            reelArea.innerHTML = '';
+            // Create three persistent reel containers
+            for (let i = 0; i < 3; i++) {
+                const reelElement = document.createElement('div');
+                reelElement.className = 'reel';
+                reelArea.appendChild(reelElement);
+            }
+        }
+
+        // Initialize token balance and lever event listener
+        document.addEventListener('DOMContentLoaded', () => {
+            updateTokenBalance();
+            clearReels(); // Initialize with three visible reels
+            const lever = document.getElementById('lever');
+            lever.addEventListener('click', spin);
+            // Ensure lever is hidden until bet is placed
+            lever.style.display = 'none';
+        });
+
+        async function placeBet(amount) {
+            if (tokenBalance >= amount) {
+                currentBet = amount;
+                tokenBalance -= amount;
+                updateTokenBalance();
+                document.getElementById('betting-controls').style.display = 'none';
+                document.getElementById('bet-instruction').style.display = 'none';
+                document.getElementById('lever').style.display = 'flex';
+                document.getElementById('message').textContent = `Bet placed: ${amount} tokens`;
+                gameActive = true;
+            } else {
+                document.getElementById('message').textContent = 'Insufficient tokens!';
+                document.getElementById('message').classList.add('message-animate');
+                setTimeout(() => document.getElementById('message').classList.remove('message-animate'), 500);
+            }
+        }
+
+        async function spin() {
+            if (!gameActive) return;
+            const lever = document.getElementById('lever');
+            lever.classList.add('pulled');
+            await new Promise(resolve => setTimeout(resolve, 500)); // Wait for lever animation
+            lever.style.display = 'none';
+            lever.classList.remove('pulled');
+
+            const reelElements = document.querySelectorAll('#reel-area .reel');
+            const results = [];
+            for (let i = 0; i < 3; i++) {
+                results.push(await spinReel(reelElements[i], i));
+            }
+
+            let message = '';
+            let outcome = '';
+            let payout = 0;
+
+            if (results[0] === results[1] && results[1] === results[2]) {
+                // Three matching symbols from left to right
+                payout = currentBet * 2;
+                tokenBalance += payout;
+                message = `Three ${results[0]} in a row! You win ${payout} tokens!`;
+                outcome = 'win';
+            } else if (results[0] === results[1]) {
+                // First two matching symbols
+                payout = currentBet * 0.5;
+                tokenBalance += payout;
+                message = `First two ${results[0]} match! You win ${payout} tokens!`;
+                outcome = 'win';
+            } else {
+                message = `No match from left. You lose ${currentBet} tokens.`;
+                outcome = 'lose';
+            }
+
+            updateTokenBalance();
+            document.getElementById('message').textContent = message;
+            document.getElementById('message').classList.add('message-animate');
+
+            const body = document.body;
+            if (outcome === 'win') {
+                body.classList.add('win-flash');
+                createParticles();
+                setTimeout(() => body.classList.remove('win-flash'), 500);
+            } else {
+                body.classList.add('lose-flash');
+                setTimeout(() => body.classList.remove('lose-flash'), 500);
+            }
+
+            setTimeout(() => {
+                document.getElementById('message').classList.remove('message-animate');
+                document.getElementById('betting-controls').style.display = 'flex';
+                document.getElementById('bet-instruction').style.display = 'block';
+                document.getElementById('lever').style.display = 'none';
+                clearReels();
+                gameActive = false;
+                currentBet = 0;
+            }, 4000); // 4-second delay
+        }
+    </script>
+</body>
+</html>
