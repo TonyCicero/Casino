@@ -379,8 +379,8 @@
     <script>
         const symbols = ['🍒', '🔔', '🍊', '7️⃣', '💎']; // Cherry, Bell, Orange, Seven, Diamond
         const payTable = {
-            three: { '🍒': 2, '🔔': 3, '🍊': 4, '7️⃣': 6, '💎': 10 },
-            two: { '🍒': 0.5, '🔔': 0.75, '🍊': 1, '7️⃣': 1.5, '💎': 2 }
+            three: { '🍒': 5, '🔔': 10, '🍊': 15, '7️⃣': 25, '💎': 100 },
+            two: { '🍒': 1, '🔔': 2, '🍊': 3, '7️⃣': 5, '💎': 10 }
         };
         let tokenBalance = parseInt(localStorage.getItem('tokenBalance')) || 100;
         let currentBet = parseInt(localStorage.getItem('slotsBet')) || 0;
