@@ -37,6 +37,24 @@
         .chip:hover {
             transform: scale(1.1);
         }
+        #game-links {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 6px; /* Replaces space-x-6, applies both horizontally and vertically */
+            max-width: 318px; /* 3x100px + 2x6px for 3 buttons per row */
+            margin: 0 auto;
+        }
+        @media (max-width: 600px) {
+            #game-links {
+                max-width: 206px; /* 2x100px + 6px for 2 buttons per row */
+            }
+        }
+        @media (max-width: 400px) {
+            #game-links {
+                max-width: 100px; /* 1x100px for 1 button per row */
+            }
+        }
         #claim-tokens {
             position: absolute;
             bottom: 20px;
@@ -68,7 +86,7 @@
         <div class="mb-8 text-xl">
             Tokens: <span id="token-balance">100</span>
         </div>
-        <div id="game-links" class="flex justify-center space-x-6 mb-12">
+        <div id="game-links" class="mb-12">
             <a href="blackjack.html" class="chip bg-green-600 hover:bg-green-700">Blackjack</a>
             <a href="poker.html" class="chip bg-red-600 hover:bg-red-700">Poker</a>
             <a href="slots.html" class="chip bg-yellow-600 hover:bg-yellow-700">Slots</a>
