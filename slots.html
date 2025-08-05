@@ -506,4 +506,90 @@
                 document.getElementById('line-controls').style.display = 'none';
                 document.getElementById('bet-instruction').style.display = 'none';
                 document.getElementById('message').textContent = `Bet placed: ${totalBet} tokens (${numberOfLines} line${numberOfLines > 1 ? 's' : ''})`;
-                game
+                gameActive = true;
+                await spin(); // Start spin immediately
+            } else {
+                document.getElementById('message').textContent = 'Insufficient tokens!';
+                document.getElementById('message').classList.add('message-animate');
+                setTimeout(() => document.getElementById('message').classList.remove('message-animate'), 500);
+            }
+        }
+
+        async function spin() {
+            if (!gameActive) return;
+
+            const reelElements = document.querySelectorAll('#reel-area .reel');
+            const results = []; // Array of [top, middle, bottom] for each reel
+            for (let i = 0; i < 3; i++) {
+                results.push(await spinReel(reelElements[i], i));
+            }
+
+            let message = '';
+            let outcome = '';
+            let totalPayout = 0;
+            const wins = [];
+
+            // Define lines based on numberOfLines
+            const lines = [];
+            if (numberOfLines >= 1) lines.push({ name: 'middle', symbols: [results[0][1], results[1][1], results[2][1]] });
+            if (numberOfLines >= 2) lines.push({ name: 'top', symbols: [results[0][0], results[1][0], results[2][0]] });
+            if (numberOfLines >= 3) {
+                lines.push({ name: 'bottom', symbols: [results[0][2], results[1][2], results[2][2]] });
+                lines.push({ name: 'diagonal1', symbols: [results[0][0], results[1][1], results[2][2]] });
+                lines.push({ name: 'diagonal2', symbols: [results[0][2], results[1][1], results[2][0]] });
+            }
+
+            // Check each line for wins
+            lines.forEach(line => {
+                if (line.symbols[0] === line.symbols[1] && line.symbols[1] === line.symbols[2]) {
+                    // Three matching symbols
+                    const payout = currentBet * payTable.three[line.symbols[0]];
+                    totalPayout += payout;
+                    wins.push(`${line.name.charAt(0).toUpperCase() + line.name.slice(1)}: ${line.symbols[0]}${line.symbols[0]}${line.symbols[0]} (${payout} tokens)`);
+                    drawWinLine(line.name);
+                } else if (line.symbols[0] === line.symbols[1]) {
+                    // First two matching symbols
+                    const payout = currentBet * payTable.two[line.symbols[0]];
+                    totalPayout += payout;
+                    wins.push(`${line.name.charAt(0).toUpperCase() + line.name.slice(1)}: ${line.symbols[0]}${line.symbols[0]} (${payout} tokens)`);
+                    drawWinLine(line.name);
+                }
+            });
+
+            if (wins.length > 0) {
+                tokenBalance += totalPayout;
+                message = `Wins: ${wins.join(', ')}`;
+                outcome = 'win';
+            } else {
+                message = `No match. You lose ${currentBet * numberOfLines} tokens.`;
+                outcome = 'lose';
+            }
+
+            updateTokenBalance();
+            document.getElementById('message').textContent = message;
+            document.getElementById('message').classList.add('message-animate');
+
+            const body = document.body;
+            if (outcome === 'win') {
+                body.classList.add('win-flash');
+                createParticles();
+                setTimeout(() => body.classList.remove('win-flash'), 500);
+            } else {
+                body.classList.add('lose-flash');
+                setTimeout(() => body.classList.remove('lose-flash'), 500);
+            }
+
+            setTimeout(() => {
+                document.getElementById('message').classList.remove('message-animate');
+                document.getElementById('betting-controls').style.display = 'flex';
+                document.getElementById('line-controls').style.display = 'flex';
+                document.getElementById('bet-instruction').style.display = 'block';
+                clearWinLines();
+                clearReels();
+                gameActive = false;
+                currentBet = 0;
+            }, 4000); // 4-second delay
+        }
+    </script>
+</body>
+</html>
