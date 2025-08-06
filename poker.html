@@ -6,6 +6,11 @@
     <title>Poker</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        .container {
+            max-width: 520px;
+            width: 100%;
+            margin: 0 auto;
+        }
         .card {
             width: 100px;
             height: 140px;
@@ -139,6 +144,111 @@
         .back-link:hover {
             color: #ffcc00;
         }
+        @media (max-width: 600px) {
+            .container {
+                padding: 8px;
+            }
+            .card {
+                width: 70px;
+                height: 105px;
+                border: 1.5px solid #000;
+                padding: 6px;
+                font-size: 20px;
+            }
+            .card-suit-top, .card-suit-bottom {
+                font-size: 14px;
+            }
+            .card-value {
+                font-size: 20px;
+            }
+            .card-back {
+                font-size: 12px;
+            }
+            .chip {
+                width: 50px;
+                height: 50px;
+                font-size: 14px;
+            }
+            h1 {
+                font-size: 2rem;
+            }
+            .text-xl {
+                font-size: 1rem;
+            }
+            .text-2xl {
+                font-size: 1.5rem;
+            }
+            .text-lg {
+                font-size: 0.875rem;
+            }
+            .space-y-8 {
+                margin-bottom: 1rem;
+            }
+            .mb-8 {
+                margin-bottom: 1rem;
+            }
+            .mt-4 {
+                margin-top: 0.5rem;
+            }
+            .mt-2 {
+                margin-top: 0.25rem;
+            }
+            #call-check, #raise, #fold {
+                font-size: 0.875rem;
+                padding: 4px 8px;
+            }
+        }
+        @media (max-width: 400px) {
+            .card {
+                width: 50px;
+                height: 75px;
+                border: 1px solid #000;
+                padding: 4px;
+                font-size: 16px;
+            }
+            .card-suit-top, .card-suit-bottom {
+                font-size: 12px;
+            }
+            .card-value {
+                font-size: 16px;
+            }
+            .card-back {
+                font-size: 10px;
+            }
+            .chip {
+                width: 40px;
+                height: 40px;
+                font-size: 12px;
+            }
+            h1 {
+                font-size: 1.5rem;
+            }
+            .text-xl {
+                font-size: 0.875rem;
+            }
+            .text-2xl {
+                font-size: 1.25rem;
+            }
+            .text-lg {
+                font-size: 0.75rem;
+            }
+            .space-y-8 {
+                margin-bottom: 0.75rem;
+            }
+            .mb-8 {
+                margin-bottom: 0.75rem;
+            }
+            .mt-4 {
+                margin-top: 0.25rem;
+            }
+            .mt-2 {
+                margin-top: 0.125rem;
+            }
+            #call-check, #raise, #fold {
+                font-size: 0.75rem;
+                padding: 2px 6px;
+            }
+        }
     </style>
 </head>
 <body class="bg-green-900 text-white flex flex-col items-center justify-center min-h-screen">
@@ -229,7 +339,7 @@
                 `;
             }
             document.getElementById(elementId).appendChild(cardElement);
-            await new Promise(resolve => setTimeout(resolve, 100)); // Delay for animation
+            await new Promise(resolve => setTimeout(resolve, 100));
             cardElement.classList.remove('card-deal');
             cardElement.classList.add('card-dealt');
             return card;
@@ -259,12 +369,9 @@
             const suits = allCards.map(card => card.suit);
             const rankCounts = ranks.reduce((acc, rank) => ({ ...acc, [rank]: (acc[rank] || 0) + 1 }), {});
             const suitCounts = suits.reduce((acc, suit) => ({ ...acc, [suit]: (acc[suit] || 0) + 1 }), {});
-            
-            // Check for flush
+
             const flushSuit = Object.keys(suitCounts).find(suit => suitCounts[suit] >= 5);
             const flushCards = flushSuit ? allCards.filter(card => card.suit === flushSuit).map(card => values.indexOf(card.value)).sort((a, b) => b - a) : [];
-            
-            // Check for straight
             const uniqueRanks = [...new Set(ranks)].sort((a, b) => b - a);
             let straightHigh = -1;
             for (let i = 0; i <= uniqueRanks.length - 5; i++) {
@@ -273,14 +380,12 @@
                     break;
                 }
             }
-            // Check for Ace-low straight (A,2,3,4,5)
             if (uniqueRanks.includes(12) && uniqueRanks.includes(0) && uniqueRanks.includes(1) && uniqueRanks.includes(2) && uniqueRanks.includes(3)) {
-                straightHigh = 3; // 5-high straight
+                straightHigh = 3;
             }
 
-            // Hand rankings (higher score is better)
             if (flushSuit && straightHigh >= 0 && flushCards[0] === straightHigh) {
-                if (straightHigh === 12) return { score: 10, desc: 'Royal Flush' }; // Royal Flush
+                if (straightHigh === 12) return { score: 10, desc: 'Royal Flush' };
                 return { score: 9, desc: 'Straight Flush', high: straightHigh };
             }
             if (Object.values(rankCounts).includes(4)) {
@@ -309,7 +414,7 @@
             if (playerEval.score > dealerEval.score) return 'player';
             if (dealerEval.score > playerEval.score) return 'dealer';
             if (playerEval.high > dealerEval.high) return 'player';
-            if (dealerEval.high > dealerEval.high) return 'dealer';
+            if (dealerEval.high > playerEval.high) return 'dealer';
             return 'tie';
         }
 
@@ -358,7 +463,6 @@
             }
         }
 
-        // Initialize token balance on page load
         document.addEventListener('DOMContentLoaded', () => {
             updateTokenBalance();
         });
@@ -366,11 +470,10 @@
         async function placeBet(amount) {
             if (tokenBalance >= amount) {
                 currentBet = amount;
-                pot = amount * 2; // Player and dealer bet
+                pot = amount * 2;
                 tokenBalance -= amount;
                 updateTokenBalance();
                 updatePot();
-                // Force immediate hide using style.display
                 document.getElementById('betting-controls').style.display = 'none';
                 document.getElementById('bet-instruction').style.display = 'none';
                 document.getElementById('dealer-hand').classList.remove('hidden');
@@ -378,7 +481,6 @@
                 document.getElementById('community-cards').classList.remove('hidden');
                 document.getElementById('message').textContent = `Bet placed: ${amount} tokens`;
 
-                // Automatically deal cards
                 createDeck();
                 shuffleDeck();
                 clearHands();
@@ -390,7 +492,7 @@
                 document.getElementById('message').textContent = 'Preflop: Choose your action';
 
                 await dealCard(playerHand, 'player-cards');
-                await dealCard(dealerHand, "dealer-cards", true);
+                await dealCard(dealerHand, 'dealer-cards', true);
                 await dealCard(playerHand, 'player-cards');
                 await dealCard(dealerHand, 'dealer-cards', true);
                 updateHandRankings();
@@ -403,7 +505,6 @@
 
         async function callCheck() {
             if (!gameActive) return;
-            // Dealer automatically calls/checks
             if (round === 'preflop') {
                 round = 'flop';
                 await dealCard(communityCards, 'community-card-area');
@@ -433,7 +534,7 @@
                 return;
             }
             tokenBalance -= 10;
-            pot += 20; // Player raises 10, dealer calls
+            pot += 20;
             updateTokenBalance();
             updatePot();
             if (round === 'preflop') {
@@ -525,7 +626,7 @@
                 clearHands();
                 currentBet = 0;
                 round = 'preflop';
-            }, 4000); // 4-second delay
+            }, 4000);
         }
     </script>
 </body>
